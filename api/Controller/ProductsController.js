@@ -40,8 +40,8 @@ module.exports = {
               t.type_name = '${category}' 
           GROUP BY 
               p.product_name, 
-              t.type_name, 
-              p.OldPrice, 
+              t.type_name,
+              p.OldPrice,
               p.image_caption_URL,
               p.ColorDefault,
               p.MinRom
@@ -258,7 +258,6 @@ module.exports = {
     // console.log(Pk);
     // if (!Pk) {
     // }
-
     let sql = `
     SELECT 
         Products.product_name, 
@@ -345,121 +344,5 @@ module.exports = {
       }
     });
   },
-  getTypeIds: (request, response) => {
-    const sql = `SELECT TypeId, type_name FROM Type`;
-
-    db.query(sql, function (err, data) {
-      if (err) {
-        console.error("Database error:", err);
-        response.status(500).send("Internal Server Error");
-      } else {
-        response.json(data);
-      }
-    });
-  },
-  createProduct: (request, response) => {
-    const {
-      product_name,
-      TypeId,
-      CaptionPrice,
-      OldPrice,
-      MinRom,
-      ColorDefault,
-      image_caption_URL,
-    } = request.body;
-
-    // Kiểm tra nếu thiếu thông tin cần thiết
-    if (
-      !product_name ||
-      !TypeId ||
-      !CaptionPrice ||
-      !OldPrice ||
-      !MinRom ||
-      !ColorDefault ||
-      !image_caption_URL
-    ) {
-      return response.status(400).send("All fields are required");
-    }
-
-    try {
-      let typeSql = "SELECT type_name FROM Type WHERE TypeId = ?";
-      let checkProductNameSql = "SELECT * FROM Products WHERE product_name = ?";
-
-      // Kiểm tra tên sản phẩm không tồn tại trong cơ sở dữ liệu
-      db.query(checkProductNameSql, [product_name], (err, result) => {
-        if (err) {
-          console.error("Database error:", err);
-          return response.status(500).send("Internal Server Error");
-        }
-        if (result.length > 0) {
-          return response.status(400).send("Product name already exists");
-        }
-
-        // Tiếp tục với quá trình kiểm tra TypeId và thêm sản phẩm mới
-        db.query(typeSql, [TypeId], (err, result) => {
-          if (err) {
-            console.error("Database error:", err);
-            return response.status(500).send("Internal Server Error");
-          }
-          if (result.length === 0) {
-            return response.status(404).send("TypeId not found");
-          }
-          const typeName = result[0].type_name;
-          const combinedURL = `${typeName}/${image_caption_URL}`;
-
-          let sql = `
-                INSERT INTO Products 
-                (product_name, TypeId, CaptionPrice, OldPrice, MinRom, ColorDefault, image_caption_URL)
-                VALUES (?, ?, ?, ?, ?, ?, ?)
-            `;
-          db.query(
-            sql,
-            [
-              product_name,
-              TypeId,
-              CaptionPrice,
-              OldPrice,
-              MinRom,
-              ColorDefault,
-              combinedURL,
-            ],
-            (err, data) => {
-              if (err) {
-                console.error("Database error:", err);
-                return response.status(500).send("Internal Server Error");
-              }
-              response.status(201).send("Product created successfully");
-            }
-          );
-        });
-      });
-    } catch (error) {
-      console.error("Error:", error.message);
-      response.status(400).send(error.message);
-    }
-  },
-
-  Login: (request, response) => {
-    const { username, password } = request.body;
-
-    // Validate input
-    if (!username || !password) {
-      return response.status(400).send("Bắt buộc phải nhập nhé  ");
-    }
-
-    // Use parameterized query to prevent SQL injection
-    const sql = "SELECT * FROM user WHERE username = ? AND password = ?;";
-    db.query(sql, [username, password], (err, results) => {
-      if (err) {
-        console.error("Database error:", err);
-        return response.status(500).send("Lỗi server ời");
-      }
-
-      if (results.length > 0) {
-        return response.status(200).send("Login successful");
-      } else {
-        return response.status(401).send("sai tên đăng nhập hoặc mật khẩu");
-      }
-    });
-  },
+  // --------------
 };
