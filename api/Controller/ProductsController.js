@@ -20,6 +20,7 @@ module.exports = {
     let sql = `
               SELECT 
               p.product_name, 
+              t.name,
               t.type_name, 
               MAX(p.CaptionPrice) AS MaxCaptionPrice, 
               p.OldPrice, 
@@ -40,6 +41,7 @@ module.exports = {
               t.type_name = '${category}' 
           GROUP BY 
               p.product_name, 
+              t.name,
               t.type_name,
               p.OldPrice,
               p.image_caption_URL,
@@ -246,7 +248,9 @@ module.exports = {
           DataPk: dataPk,
           DataImg: dataDetailImg,
         });
+        console.log(dataPricing, dataCard, dataPk, dataDetailImg);
       })
+
       .catch((err) => {
         console.error("Error:", err);
         response.status(500).send("Internal Server Error");
