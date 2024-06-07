@@ -79,6 +79,7 @@ module.exports = {
       return new Promise((resolve, reject) => {
         const sql = `
           SELECT 
+              Products.image_caption_URL,
               Products.ProductID,
               ROM.rom_name AS ROM,
               Color.color_name AS Color_name,
@@ -228,19 +229,41 @@ module.exports = {
         });
       });
     };
-
+    const image_caption_URL = () => {
+      return new Promise((resolve, rejects) => {
+        const sql = `SELECT
+        Products.image_caption_URL
+    FROM
+        Products
+    
+    WHERE
+        Products.product_name = "${DetailCate}";
+    
+        `;
+        db.query(sql, function (err, data) {
+          if (err) {
+            console.error("Database error:", err);
+            rejects(err);
+          } else {
+            resolve(data);
+          }
+        });
+      });
+    };
     // Sử dụng Promise.all để thực hiện các truy vấn song song
     Promise.all([
       queryProducts(),
       queryProductDetail(),
       queryAccessoryProducts(),
       ImgDetailItem(),
+      image_caption_URL(),
     ])
-      .then(([dataPricing, dataCard, dataPk, dataDetailImg]) => {
+      .then(([dataPricing, dataCard, dataPk, dataDetailImg, CaptionImg]) => {
         // Gửi JSON với dữ liệu được trả về từ ba truy vấn
         response.json({
           category,
           DetailCate,
+          CaptionImg: CaptionImg,
           RomMin: RomMin,
           ColorDefault: ColorDefault,
           DataPricing: dataPricing,
@@ -248,7 +271,7 @@ module.exports = {
           DataPk: dataPk,
           DataImg: dataDetailImg,
         });
-        console.log(dataPricing, dataCard, dataPk, dataDetailImg);
+        console.log(dataPricing, dataCard, dataPk, dataDetailImg, CaptionImg);
       })
 
       .catch((err) => {
@@ -347,6 +370,48 @@ module.exports = {
         });
       }
     });
+  },
+
+  postorders: (req, res) => {
+    const {
+      customer_name,
+      customer_email,
+      customer_phone,
+      total_price,
+      products,
+    } = req.body;
+    console.log(
+      customer_name,
+      customer_email,
+      customer_phone,
+      total_price,
+      products
+    );
+    // Thêm đơn hàng vào bảng `Order`
+    db.query(
+      "INSERT INTO `Order` (customer_name, customer_email, customer_phone, total_price) VALUES (?, ?, ?, ?)",
+      [customer_name, customer_email, customer_phone, total_price],
+      (err, result) => {
+        if (err) throw err;
+
+        // Lấy ID của đơn hàng vừa thêm
+        const orderId = result.insertId;
+
+        // Thêm chi tiết đơn hàng vào bảng `OrderDetail`
+        products.forEach((product) => {
+          const { product_name, quantity, price_per_item } = product;
+          db.query(
+            "INSERT INTO `OrderDetail` (order_id, product_name, quantity, price_per_item) VALUES (?, ?, ?, ?)",
+            [orderId, product_name, quantity, price_per_item],
+            (err, result) => {
+              if (err) throw err;
+            }
+          );
+        });
+
+        res.status(200).send("Đơn hàng đã được thêm thành công!");
+      }
+    );
   },
   // --------------
 };

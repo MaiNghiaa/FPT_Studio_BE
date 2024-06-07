@@ -4,6 +4,7 @@
 const multer = require("multer");
 const express = require("express");
 const path = require("path");
+const ProductsController = require("./Controller/ProductsController");
 
 module.exports = function (app) {
   const AdminController = require("./Controller/AdminController");
@@ -132,6 +133,6 @@ module.exports = function (app) {
   // Chi tiết items thong so
   app.route("/:category/:Detail").get(productsControl.getDetailItems);
   app.route("/:category/:Detail/MoreDetail").get(productsControl.getPost);
-
+  app.route("/orders").post(ProductsController.postorders);
   // ---------------------------------------------------------------------
 };
