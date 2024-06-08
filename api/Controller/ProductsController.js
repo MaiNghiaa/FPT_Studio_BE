@@ -85,7 +85,8 @@ module.exports = {
               Color.color_name AS Color_name,
               Color.color AS Color,
               Pricing.OldPrice,
-              Pricing.Price
+              Pricing.Price,
+              Pricing.Quantity
           FROM 
               Products
           INNER JOIN 
@@ -122,6 +123,7 @@ module.exports = {
                 Color_name: row.Color_name,
                 color: row.Color,
                 price: row.Price,
+                Quantity: row.Quantity,
                 OldPrice: row.OldPrice,
               });
             });
@@ -372,6 +374,77 @@ module.exports = {
     });
   },
   ////Orders
+
+  getOrder: (req, res) => {
+    console.log("adas");
+    const query = `
+        SELECT 
+            o.order_id,
+            o.customer_name,
+            o.customer_email,
+            o.customer_phone,
+            o.total_price,
+            o.status,
+            o.order_date,
+            od.product_name,
+            od.quantity,
+            od.price_per_item,
+            od.rom,
+            od.ColorPick,
+            od.URL
+        FROM 
+            project1.Order o
+        JOIN 
+            OrderDetail od ON o.order_id = od.order_id;
+    `;
+
+    db.query(query, (err, results) => {
+      if (err) {
+        return res.status(500).json({ error: err.message });
+      }
+
+      const orders = results.reduce((acc, row) => {
+        const orderId = row.order_id;
+
+        if (!acc[orderId]) {
+          acc[orderId] = {
+            order_id: row.order_id,
+            customer_name: row.customer_name,
+            customer_email: row.customer_email,
+            customer_phone: row.customer_phone,
+            total_price: row.total_price,
+            status: row.status,
+            totalQuantity: 0, // This should be calculated if necessary
+            products: [],
+          };
+        }
+
+        acc[orderId].products.push({
+          ComboPricing: 0, // You can set these values as per your requirement
+          oldComboPricing: 0,
+          nameComboPricing: "",
+          URL: row.URL,
+          rom: row.rom,
+          ColorPick: row.ColorPick,
+          product_name: row.product_name,
+          quantity: row.quantity,
+          old_price_per_item: 0,
+          price_per_item: row.price_per_item,
+          TotalinProduct: row.price_per_item * row.quantity,
+        });
+
+        // Update totalQuantity
+        acc[orderId].totalQuantity += row.quantity;
+
+        return acc;
+      }, {});
+
+      // Convert object to array and send as response
+      const formattedOrders = Object.values(orders);
+      console.log(formattedOrders);
+      res.json(formattedOrders);
+    });
+  },
 
   getordersbyId: (req, res) => {
     const { customer_name, customer_email, customer_phone } = req.body;

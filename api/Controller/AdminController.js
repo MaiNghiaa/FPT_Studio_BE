@@ -939,4 +939,338 @@ module.exports = {
       });
     });
   },
+
+  updateOrderStatus: (req, res) => {
+    const orderProduct = req.body.order.products;
+    const orderId = req.body.order.order_id;
+    const newStatus = req.body.status;
+
+    const neworderProduct = orderProduct.map(
+      ({ rom, ColorPick, quantity }) => ({
+        rom,
+        ColorPick,
+        quantity,
+      })
+    );
+    // Mảng mới chứa RomId, ColorId, và quantity
+    const orderProductDetail = [];
+
+    // Tạo mảng các promise để thực hiện các truy vấn
+    const promises = neworderProduct.map((product) => {
+      // Lấy RomId từ bảng ROM
+      const romQuery = `SELECT RomId FROM ROM WHERE rom_name = ?`;
+      const colorQuery = `SELECT ColorId FROM Color WHERE color_name = ?`;
+
+      return new Promise((resolve, reject) => {
+        db.query(romQuery, [product.rom], (romError, romRows) => {
+          if (romError) {
+            reject(romError);
+            return;
+          }
+          if (romRows.length > 0) {
+            const romId = romRows[0].RomId;
+
+            // Lấy ColorId từ bảng Color
+            db.query(
+              colorQuery,
+              [product.ColorPick],
+              (colorError, colorRows) => {
+                if (colorError) {
+                  reject(colorError);
+                  return;
+                }
+                if (colorRows.length > 0) {
+                  const colorId = colorRows[0].ColorId;
+
+                  // Tạo một đối tượng mới chứa RomId, ColorId và quantity
+                  const newObj = {
+                    romId: romId,
+                    colorId: colorId,
+                    quantity: product.quantity,
+                  };
+
+                  // Thêm đối tượng mới vào mảng orderProductDetail
+                  orderProductDetail.push(newObj);
+                  resolve();
+                } else {
+                  reject(`Color ${product.ColorPick} not found.`);
+                }
+              }
+            );
+          } else {
+            reject(`ROM ${product.rom} not found.`);
+          }
+        });
+      });
+    });
+
+    Promise.all(promises)
+      .then(() => {
+        console.log(orderProductDetail);
+      })
+      .catch((error) => {
+        console.error("Error fetching ROMs and Colors:", error);
+      });
+
+    const updatePricing = () => {
+      return new Promise((resolve, reject) => {
+        const promises = orderProductDetail.map((detail) => {
+          const { romId, colorId, quantity } = detail;
+          const updateQuery = `
+              UPDATE Pricing 
+              SET Quantity = Quantity - ?
+              WHERE RomId = ? AND ColorId = ?
+            `;
+
+          return new Promise((resolve, reject) => {
+            db.query(
+              updateQuery,
+              [quantity, romId, colorId],
+              (error, result) => {
+                if (error) {
+                  console.error("Error updating pricing:", error);
+                  reject(error);
+                } else {
+                  console.log(
+                    `Successfully updated pricing for RomId ${romId} and ColorId ${colorId}`
+                  );
+                  resolve();
+                }
+              }
+            );
+          });
+        });
+
+        // Đợi tất cả các Promise hoàn thành
+        Promise.all(promises)
+          .then(() => {
+            resolve();
+          })
+          .catch((error) => {
+            reject(error);
+          });
+      });
+    };
+    // Cập nhật trạng thái đơn hàng trong bảng Order
+    const updateOrderStatus = () => {
+      return new Promise((resolve, reject) => {
+        const sql = `UPDATE project1.Order SET status = "${newStatus}" WHERE order_id = ${orderId}`;
+
+        db.query(sql, (error, results) => {
+          if (error) {
+            console.error("Error updating order status:", error);
+            reject(error);
+          } else {
+            console.log("Order status updated successfully");
+            resolve();
+          }
+        });
+      });
+    };
+    // Thực hiện tuần tự các thao tác: cập nhật Pricing => cập nhật Order
+    updatePricing()
+      .then(() => {
+        return updateOrderStatus();
+      })
+      .then(() => {
+        res
+          .status(200)
+          .json({ message: "Order status and pricing updated successfully" });
+      })
+      .catch((error) => {
+        console.error("Error:", error);
+        res.status(500).json({ message: "Internal server error" });
+      });
+    // // console.log(orderId, newStatus, neworderProduct);
+    // const sql = `UPDATE project1.Order SET status = "${newStatus}" WHERE order_id = ${orderId}`;
+
+    // db.query(sql, (error, results) => {
+    //   if (error) {
+    //     console.error("Error updating order status:", error);
+    //     res.status(500).json({ message: "Internal server error" });
+    //   } else {
+    //     console.log("Order status updated successfully");
+    //     res.status(200).json({ message: "Order status updated successfully" });
+    //   }
+    // });
+  },
+
+  post: (req, res) => {
+    const productId = req.query.productId;
+    console.log(productId, "Helllooo");
+    // Tạo hàm thực hiện truy vấn sản phẩm và giá
+    const queryProducts = () => {
+      return new Promise((resolve, reject) => {
+        const sql = `
+          SELECT 
+              Products.image_caption_URL,
+              Products.ProductID,
+              ROM.rom_name AS ROM,
+              Color.color_name AS Color_name,
+              Color.color AS Color,
+              Pricing.OldPrice,
+              Pricing.Price,
+              Pricing.Quantity
+          FROM 
+              Products
+          INNER JOIN 
+              Pricing ON Products.ProductID = Pricing.ProductID
+          INNER JOIN 
+              Color ON Pricing.ColorId = Color.ColorId
+          INNER JOIN 
+              ROM ON Pricing.RomId = ROM.RomId
+          WHERE 
+              Products.ProductID = ?
+        `;
+
+        db.query(sql, [productId], function (err, productResults) {
+          if (err) {
+            console.error("Database error:", err);
+            reject(err);
+          } else {
+            if (!Array.isArray(productResults)) {
+              productResults = [productResults];
+            }
+
+            const data = [];
+            const roms = {};
+
+            productResults.forEach((row) => {
+              if (!roms[row.ROM]) {
+                roms[row.ROM] = {
+                  Rom: row.ROM,
+                  DetailCR: [],
+                };
+              }
+
+              roms[row.ROM].DetailCR.push({
+                Color_name: row.Color_name,
+                color: row.Color,
+                price: row.Price,
+                Quantity: row.Quantity,
+                OldPrice: row.OldPrice,
+              });
+            });
+
+            for (const rom in roms) {
+              data.push(roms[rom]);
+            }
+
+            resolve(data);
+          }
+        });
+      });
+    };
+
+    // Thực hiện truy vấn
+    queryProducts()
+      .then((dataPricing) => {
+        // Gửi JSON với dữ liệu được trả về từ truy vấn
+        res.json({
+          DataPricing: dataPricing,
+        });
+        console.log(dataPricing);
+      })
+      .catch((err) => {
+        console.error("Error:", err);
+        res.status(500).send("Internal Server Error");
+      });
+  },
+
+  addPricing: (req, res) => {
+    const { Color_name, OldPrice, Quantity, Rom, price, productId } = req.body;
+
+    // Thực hiện truy vấn thông qua pool.query với callback
+    db.query(
+      `SELECT * FROM Pricing WHERE ProductID = ? AND ColorId = ? AND RomId = ?`,
+      [productId, Color_name, Rom],
+      (error, existingPricingResult) => {
+        if (error) {
+          console.error("Error checking existing pricing:", error);
+          return res.status(500).json({ error: "Internal server error" });
+        }
+
+        // Kiểm tra nếu đã tồn tại kết hợp Color_name và Rom
+        if (existingPricingResult.length > 0) {
+          return res.status(400).json({
+            error:
+              "Color_name and Rom combination already exists for this product",
+          });
+        }
+
+        // Thêm bản ghi mới vào bảng Pricing
+        const sql = `
+                INSERT INTO Pricing (ProductID, ColorId, RomId, Price, OldPrice, Quantity) 
+                VALUES (?, ?, ?, ?, ?, ?);
+            `;
+        db.query(
+          sql,
+          [productId, Color_name, Rom, price, OldPrice, Quantity],
+          (error, result) => {
+            if (error) {
+              console.error("Error adding pricing:", error);
+              return res.status(500).json({ error: "Internal server error" });
+            }
+
+            res.status(201).json({ message: "Pricing added successfully" });
+          }
+        );
+      }
+    );
+  },
+  DeletePricingProduct: (req, res) => {
+    const { Color_name, rom, productId } = req.body;
+    console.log(Color_name, rom, productId);
+
+    // Lấy ColorId từ bảng Color
+    const getColorIdQuery = `SELECT ColorId FROM Color WHERE color_name = '${Color_name}'`;
+    db.query(getColorIdQuery, (error, colorResult) => {
+      if (error) {
+        console.error("Error getting ColorId: ", error);
+        res.status(500).json({ message: "Internal server error" });
+        return;
+      }
+
+      // Lấy ColorId từ kết quả truy vấn
+      const ColorId = colorResult.length > 0 ? colorResult[0].ColorId : null;
+
+      // Kiểm tra nếu không có ColorId
+      if (!ColorId) {
+        res.status(404).json({ message: "ColorId not found" });
+        return;
+      }
+
+      // Lấy RomId từ bảng ROM
+      const getRomIdQuery = `SELECT RomId FROM ROM WHERE rom_name = '${rom}'`;
+      db.query(getRomIdQuery, (err, romResult) => {
+        if (err) {
+          console.error("Error getting RomId: ", err);
+          res.status(500).json({ message: "Internal server error" });
+          return;
+        }
+
+        // Lấy RomId từ kết quả truy vấn
+        const RomId = romResult.length > 0 ? romResult[0].RomId : null;
+
+        // Kiểm tra nếu không có RomId
+        if (!RomId) {
+          res.status(404).json({ message: "RomId not found" });
+          return;
+        }
+
+        // Xóa sản phẩm từ bảng Pricing
+        const DeletePricingProductQuery = `DELETE FROM project1.Pricing WHERE ProductID = '${productId}' AND ColorId = '${ColorId}' AND RomId = '${RomId}'`;
+        db.query(DeletePricingProductQuery, (err, deleteResult) => {
+          if (err) {
+            console.error("Error deleting product: ", err);
+            res.status(500).json({ message: "Internal server error" });
+            return;
+          }
+
+          // Gửi phản hồi khi hoàn thành
+          res.status(200).json({ message: "Product deleted successfully" });
+        });
+      });
+    });
+  },
 };

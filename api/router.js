@@ -122,10 +122,24 @@ module.exports = function (app) {
     .route("/updateProfile")
     .put(upload.single("avatar"), AdminController.updateProfile);
 
-  //-------------------------------------------------------------------------------------------
+  //Pricing
 
-  //Password-------
+  app.route("/addPricing").post(AdminController.addPricing);
+  app
+    .route("/deletePricingProduct")
+    .delete(AdminController.DeletePricingProduct);
+  //update-order-status
+  app.route("/update-order-status").post(AdminController.updateOrderStatus);
+
+  //-------------------------------------------------------------------------------------------
+  app.route("/ProductCount").get(AdminController.post);
+
+  //Password------
+
   app.route("/changePassword").put(AdminController.changePassword);
+  app.route("/orders").get(ProductsController.getOrder);
+  app.route("/orders").post(ProductsController.postorders);
+  app.route("/ordersbyId").post(ProductsController.getordersbyId);
 
   // List product đang có
   app.route("/:category").get(productsControl.get);
@@ -133,8 +147,6 @@ module.exports = function (app) {
   // Chi tiết items thong so
   app.route("/:category/:Detail").get(productsControl.getDetailItems);
   app.route("/:category/:Detail/MoreDetail").get(productsControl.getPost);
-  app.route("/orders").post(ProductsController.postorders);
-  app.route("/ordersbyId").post(ProductsController.getordersbyId);
 
   // ---------------------------------------------------------------------
 };
