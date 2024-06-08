@@ -371,6 +371,24 @@ module.exports = {
       }
     });
   },
+  ////Orders
+
+  getordersbyId: (req, res) => {
+    const { customer_name, customer_email, customer_phone } = req.body;
+
+    console.log(customer_name, customer_email, customer_phone);
+    const sql = ` SELECT order_id,status FROM project1.Order WHERE customer_name = "${customer_name}" AND customer_email ="${customer_email}" AND customer_phone = ${customer_phone}`;
+    db.query(sql, function (err, data) {
+      if (err) {
+        // Xử lý lỗi từ cơ sở dữ liệu
+        console.error("Database error:", err);
+        res.status(500).send("Internal Server Error");
+      } else {
+        console.log(data);
+        res.json(data);
+      }
+    });
+  },
 
   postorders: (req, res) => {
     const {
@@ -380,6 +398,12 @@ module.exports = {
       total_price,
       products,
     } = req.body;
+
+    // Validate required fields
+    if (!customer_name || !customer_email || !customer_phone) {
+      return res.status(400).send("Thiếu thông tin khách hàng.");
+    }
+
     console.log(
       customer_name,
       customer_email,
@@ -387,6 +411,7 @@ module.exports = {
       total_price,
       products
     );
+
     // Thêm đơn hàng vào bảng `Order`
     db.query(
       "INSERT INTO `Order` (customer_name, customer_email, customer_phone, total_price) VALUES (?, ?, ?, ?)",
@@ -399,10 +424,25 @@ module.exports = {
 
         // Thêm chi tiết đơn hàng vào bảng `OrderDetail`
         products.forEach((product) => {
-          const { product_name, quantity, price_per_item } = product;
+          const {
+            product_name,
+            quantity,
+            price_per_item,
+            rom,
+            ColorPick,
+            URL,
+          } = product;
           db.query(
-            "INSERT INTO `OrderDetail` (order_id, product_name, quantity, price_per_item) VALUES (?, ?, ?, ?)",
-            [orderId, product_name, quantity, price_per_item],
+            "INSERT INTO `OrderDetail` (order_id, product_name, quantity, price_per_item, rom, ColorPick, URL) VALUES (?, ?, ?, ?, ?, ?, ?)",
+            [
+              orderId,
+              product_name,
+              quantity,
+              price_per_item,
+              rom,
+              ColorPick,
+              URL,
+            ],
             (err, result) => {
               if (err) throw err;
             }
@@ -413,5 +453,6 @@ module.exports = {
       }
     );
   },
+
   // --------------
 };

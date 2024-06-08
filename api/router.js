@@ -134,5 +134,7 @@ module.exports = function (app) {
   app.route("/:category/:Detail").get(productsControl.getDetailItems);
   app.route("/:category/:Detail/MoreDetail").get(productsControl.getPost);
   app.route("/orders").post(ProductsController.postorders);
+  app.route("/ordersbyId").post(ProductsController.getordersbyId);
+
   // ---------------------------------------------------------------------
 };
