@@ -141,6 +141,7 @@ module.exports = function (app) {
   app.route("/orders").post(ProductsController.postorders);
   app.route("/ordersbyId").post(ProductsController.getordersbyId);
 
+  app.route("/NotiItems").post(ProductsController.NotiItems);
   // List product đang có
   app.route("/:category").get(productsControl.get);
 

@@ -318,6 +318,31 @@ module.exports = {
     });
   },
 
+  NotiItems: (request, response) => {
+    const { Name, Phone, Email } = request.body;
+    console.log(Name, Phone, Email);
+
+    if (!Name || !Phone) {
+      return response.status(400).send("Lỗi: Thiếu dữ liệu bắt buộc");
+    }
+
+    // Sử dụng chuẩn bị câu lệnh để tránh SQL Injection
+    const sql =
+      "INSERT INTO RegisterNewItem (Fullname, Phone,email) VALUES (?, ?, ?)";
+    const values = [Name, Phone, email];
+
+    db.query(sql, values, (err, data) => {
+      if (err) {
+        // Xử lý lỗi từ cơ sở dữ liệu
+        console.error("Database error:", err);
+        return response.status(500).send("Lỗi cơ sở dữ liệu");
+      } else {
+        console.log(data);
+        return response.status(200).send("Dữ liệu đã được lưu trữ thành công");
+      }
+    });
+  },
+
   //Thong tin khac
   getPost: (request, response) => {
     // console.log(Pk);
