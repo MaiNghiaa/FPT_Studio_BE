@@ -61,6 +61,29 @@ module.exports = {
   },
   //THong so san pham
 
+  //
+  // Workshop
+
+  getWorkShop: (request, response) => {
+    const sql = "SELECT * FROM Workshop";
+
+    // Execute the query
+    db.query(sql, (err, data) => {
+      if (err) {
+        // Handle database errors
+        console.error("Database error:", err);
+        response.status(500).send("Internal Server Error");
+      } else {
+        response.json(data);
+      }
+    });
+  },
+
+  AddWorkShop: (req, res) => {
+    console.log("done");
+  },
+  //
+
   getDetailItems: (request, response) => {
     const category = request.params.category;
     const DetailCate = request.params.Detail;
@@ -326,7 +349,6 @@ module.exports = {
       return response.status(400).send("Lỗi: Thiếu dữ liệu bắt buộc");
     }
 
-    // Sử dụng chuẩn bị câu lệnh để tránh SQL Injection
     const sql =
       "INSERT INTO RegisterNewItem (Fullname, Phone,email) VALUES (?, ?, ?)";
     const values = [Name, Phone, email];

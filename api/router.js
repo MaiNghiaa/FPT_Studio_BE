@@ -43,6 +43,9 @@ module.exports = function (app) {
     .post(upload.single("image"), AdminController.createProduct);
   app.route("/DeleteProduct").delete(AdminController.DeleteProduct);
   // app.route("/EditProduct").put(AdminController.EditProduct);
+
+  app.route("/Workshop").get(productsControl.getWorkShop);
+  app.route("/Workshop/Add").post(productsControl.AddWorkShop);
   // HeadingPost -------------------------------------------------
   app.route("/headings").get(AdminController.getHeadingPostofProduct);
   app
