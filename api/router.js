@@ -45,7 +45,15 @@ module.exports = function (app) {
   // app.route("/EditProduct").put(AdminController.EditProduct);
 
   app.route("/Workshop").get(productsControl.getWorkShop);
-  app.route("/Workshop/Add").post(productsControl.AddWorkShop);
+  app
+    .route("/Workshops")
+    .post(upload.single("Ws_image"), productsControl.AddWorkShop);
+  app
+    .route("/Workshops/:id")
+    .put(upload.single("Ws_image"), productsControl.updateworkshops);
+  app
+    .route("/Workshops/:id")
+    .delete(upload.single("Ws_image"), productsControl.deleteworkshop);
   // HeadingPost -------------------------------------------------
   app.route("/headings").get(AdminController.getHeadingPostofProduct);
   app
@@ -54,6 +62,7 @@ module.exports = function (app) {
       upload.single("headingImage"),
       AdminController.UpdateHeadingPostofProduct
     );
+
   app
     .route("/headings/:Id")
     .post(
@@ -97,6 +106,8 @@ module.exports = function (app) {
     .route("/product_detail/:productId")
     .put(AdminController.editProductDetail);
 
+  app.route("/NotiItems").get(ProductsController.getNoti);
+  app.route("/NotiItems").post(ProductsController.postNoti);
   // Roms -------------------------------------------------
   app.route("/Roms").get(AdminController.getRoms);
   app.route("/Roms/:Id").get(AdminController.getRomById);

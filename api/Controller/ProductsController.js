@@ -80,7 +80,56 @@ module.exports = {
   },
 
   AddWorkShop: (req, res) => {
-    console.log("done");
+    const { Ws_Title, Ws_beginDay, Ws_timeSt, Ws_timeE } = req.body;
+    const Ws_image = req.file ? req.file.filename : null;
+    const query =
+      "INSERT INTO workshop (Ws_image, Ws_Title, Ws_beginDay, Ws_timeSt, Ws_timeE) VALUES (?, ?, ?, ?, ?)";
+    db.query(
+      query,
+      [Ws_image, Ws_Title, Ws_beginDay, Ws_timeSt, Ws_timeE],
+      (err, result) => {
+        if (err) {
+          return res.status(400).json("Error: " + err);
+        }
+        res.json({
+          id: result.insertId,
+          Ws_image,
+          Ws_Title,
+          Ws_beginDay,
+          Ws_timeSt,
+          Ws_timeE,
+        });
+      }
+    );
+  },
+  updateworkshops: (req, res) => {
+    const { id } = req.params;
+    const { Ws_Title, Ws_beginDay, Ws_timeSt, Ws_timeE } = req.body;
+    const Ws_image = req.file ? req.file.filename : req.body.Ws_image;
+
+    const query =
+      "UPDATE workshop SET Ws_image = ?, Ws_Title = ?, Ws_beginDay = ?, Ws_timeSt = ?, Ws_timeE = ? WHERE Workshop_id = ?";
+    db.query(
+      query,
+      [Ws_image, Ws_Title, Ws_beginDay, Ws_timeSt, Ws_timeE, id],
+      (err, result) => {
+        if (err) {
+          return res.status(400).json("Error: " + err);
+        }
+        res.json(result);
+      }
+    );
+  },
+
+  deleteworkshop: (req, res) => {
+    const { id } = req.params;
+    const query = "DELETE FROM workshop WHERE Workshop_id = ?";
+    db.query(query, [id], (err, result) => {
+      if (err) {
+        return res.status(400).json("Error: " + err);
+      }
+      res.json(result);
+    });
   },
   //
 
@@ -575,4 +624,24 @@ module.exports = {
   },
 
   // --------------
+
+  postNoti: (req, res) => {
+    const { Name, Phone, Email } = req.body;
+    const query = "INSERT INTO Noti (Name, Phone, Email) VALUES (?, ?, ?)";
+    db.query(query, [Name, Phone, Email], (err, result) => {
+      if (err) {
+        return res.status(400).json("Error: " + err);
+      }
+      res.json({ id: result.insertId, Name, Phone, Email });
+    });
+  },
+  getNoti: (req, res) => {
+    const query = "SELECT * FROM notiitems";
+    db.query(query, (err, results) => {
+      if (err) {
+        return res.status(400).json("Error: " + err);
+      }
+      res.json(results);
+    });
+  },
 };
